@@ -25,8 +25,13 @@ page = st.sidebar.radio(
 
 if page == "Training Notebook":
     st.subheader("Model Training Notebook")
-    with open("Bank_Marketing_Assignment_2.ipynb", "r", encoding="utf-8") as f:
-        st.code(f.read(), language="python")
+    # Read the HTML file content
+    with open("Bank_Marketing_Assignment_2.html", "r", encoding="utf-8") as f:
+        html_content = f.read()
+    # Display the HTML content
+    st.components.v1.html(html_content, width=800, height=600, scrolling=True)
+    # with open("Bank_Marketing_Assignment_2.ipynb", "r", encoding="utf-8") as f:
+    #     st.code(f.read(), language="python")
 
 elif page == "CSV Upload Prediction":
     st.subheader("Upload CSV for Batch Prediction")
@@ -54,24 +59,41 @@ elif page == "CSV Upload Prediction":
 elif page == "Single Prediction":
     st.subheader("Single Entry Prediction")
 
+    # Column order must match notebook: X = df.drop('y', axis=1) → 16 features
+    FEATURE_COLUMNS = [
+        "age", "job", "marital", "education", "default", "balance",
+        "housing", "loan", "contact", "day", "month", "duration",
+        "campaign", "pdays", "previous", "poutcome",
+    ]
+
     model_name = st.selectbox("Select Model", list(models.keys()))
     model = models[model_name]
 
     age = st.number_input("Age", 18, 100, 35)
+    job = st.selectbox("Job (encoded)", list(range(12)))
+    marital = st.selectbox("Marital (encoded)", list(range(3)))
+    education = st.selectbox("Education (encoded)", list(range(4)))
+    default = st.selectbox("Default (encoded: 0=no, 1=yes)", [0, 1], index=0)
     balance = st.number_input("Balance", value=1000)
+    housing = st.selectbox("Housing (encoded: 0=no, 1=yes)", [0, 1], index=0)
+    loan = st.selectbox("Loan (encoded: 0=no, 1=yes)", [0, 1], index=0)
+    contact = st.selectbox("Contact (encoded)", list(range(3)))
+    day = st.number_input("Day of Month", 1, 31, 15)
+    month = st.selectbox("Month (encoded)", list(range(12)))
     duration = st.number_input("Call Duration", value=180)
     campaign = st.number_input("Campaign Contacts", value=1)
     pdays = st.number_input("Days Since Last Contact", value=999)
     previous = st.number_input("Previous Contacts", value=0)
+    poutcome = st.selectbox("Poutcome (encoded)", list(range(4)))
 
-    job = st.selectbox("Job (encoded)", list(range(12)))
-    education = st.selectbox("Education (encoded)", list(range(4)))
-    marital = st.selectbox("Marital (encoded)", list(range(3)))
-
-    input_df = pd.DataFrame([[
-        age, job, marital, education, balance,
-        campaign, pdays, previous, duration
-    ]])
+    input_df = pd.DataFrame(
+        [[
+            age, job, marital, education, default, balance,
+            housing, loan, contact, day, month, duration,
+            campaign, pdays, previous, poutcome,
+        ]],
+        columns=FEATURE_COLUMNS,
+    )
 
     if st.button("Predict"):
         if model_name in ["Logistic Regression", "KNN"]:
