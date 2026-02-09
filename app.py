@@ -59,6 +59,17 @@ elif page == "CSV Upload Prediction":
 elif page == "Single Prediction":
     st.subheader("Single Entry Prediction")
 
+    # Categorical options from UCI Bank Marketing dataset (encoding order = sorted unique in data)
+    JOB_OPTIONS = ["admin.", "blue-collar", "entrepreneur", "housemaid", "management", "retired", "self-employed", "services", "student", "technician", "unemployed", "unknown"]
+    MARITAL_OPTIONS = ["divorced", "married", "single"]
+    EDUCATION_OPTIONS = ["primary", "secondary", "tertiary", "unknown"]
+    DEFAULT_OPTIONS = ["no", "yes"]
+    HOUSING_OPTIONS = ["no", "yes"]
+    LOAN_OPTIONS = ["no", "yes"]
+    CONTACT_OPTIONS = ["cellular", "telephone", "unknown"]
+    MONTH_OPTIONS = ["apr", "aug", "dec", "feb", "jan", "jul", "jun", "mar", "may", "nov", "oct", "sep"]
+    POUTCOME_OPTIONS = ["failure", "other", "success", "unknown"]
+
     # Column order must match notebook: X = df.drop('y', axis=1) → 16 features
     FEATURE_COLUMNS = [
         "age", "job", "marital", "education", "default", "balance",
@@ -66,25 +77,31 @@ elif page == "Single Prediction":
         "campaign", "pdays", "previous", "poutcome",
     ]
 
-    model_name = st.selectbox("Select Model", list(models.keys()))
-    model = models[model_name]
-
     age = st.number_input("Age", 18, 100, 35)
-    job = st.selectbox("Job (encoded)", list(range(12)))
-    marital = st.selectbox("Marital (encoded)", list(range(3)))
-    education = st.selectbox("Education (encoded)", list(range(4)))
-    default = st.selectbox("Default (encoded: 0=no, 1=yes)", [0, 1], index=0)
+    job_idx = st.selectbox("Job", options=range(len(JOB_OPTIONS)), format_func=lambda i: JOB_OPTIONS[i], index=0)
+    job = job_idx
+    marital_idx = st.selectbox("Marital status", options=range(len(MARITAL_OPTIONS)), format_func=lambda i: MARITAL_OPTIONS[i], index=1)
+    marital = marital_idx
+    education_idx = st.selectbox("Education", options=range(len(EDUCATION_OPTIONS)), format_func=lambda i: EDUCATION_OPTIONS[i], index=1)
+    education = education_idx
+    default_idx = st.selectbox("Credit in default?", options=range(len(DEFAULT_OPTIONS)), format_func=lambda i: DEFAULT_OPTIONS[i], index=0)
+    default = default_idx
     balance = st.number_input("Balance", value=1000)
-    housing = st.selectbox("Housing (encoded: 0=no, 1=yes)", [0, 1], index=0)
-    loan = st.selectbox("Loan (encoded: 0=no, 1=yes)", [0, 1], index=0)
-    contact = st.selectbox("Contact (encoded)", list(range(3)))
+    housing_idx = st.selectbox("Housing loan?", options=range(len(HOUSING_OPTIONS)), format_func=lambda i: HOUSING_OPTIONS[i], index=0)
+    housing = housing_idx
+    loan_idx = st.selectbox("Personal loan?", options=range(len(LOAN_OPTIONS)), format_func=lambda i: LOAN_OPTIONS[i], index=0)
+    loan = loan_idx
+    contact_idx = st.selectbox("Contact type", options=range(len(CONTACT_OPTIONS)), format_func=lambda i: CONTACT_OPTIONS[i], index=0)
+    contact = contact_idx
     day = st.number_input("Day of Month", 1, 31, 15)
-    month = st.selectbox("Month (encoded)", list(range(12)))
+    month_idx = st.selectbox("Month", options=range(len(MONTH_OPTIONS)), format_func=lambda i: MONTH_OPTIONS[i], index=4)
+    month = month_idx
     duration = st.number_input("Call Duration", value=180)
     campaign = st.number_input("Campaign Contacts", value=1)
     pdays = st.number_input("Days Since Last Contact", value=999)
     previous = st.number_input("Previous Contacts", value=0)
-    poutcome = st.selectbox("Poutcome (encoded)", list(range(4)))
+    poutcome_idx = st.selectbox("Previous campaign outcome", options=range(len(POUTCOME_OPTIONS)), format_func=lambda i: POUTCOME_OPTIONS[i], index=0)
+    poutcome = poutcome_idx
 
     input_df = pd.DataFrame(
         [[
@@ -96,11 +113,15 @@ elif page == "Single Prediction":
     )
 
     if st.button("Predict"):
-        if model_name in ["Logistic Regression", "KNN"]:
-            input_scaled = scaler.transform(input_df)
-            pred = model.predict(input_scaled)[0]
-        else:
-            pred = model.predict(input_df)[0]
-
-        result = "Subscribed" if pred == 1 else "Not Subscribed"
-        st.success(f"Prediction: {result}")
+        rows = []
+        for model_name, model in models.items():
+            if model_name in ["Logistic Regression", "KNN"]:
+                input_scaled = scaler.transform(input_df)
+                pred = model.predict(input_scaled)[0]
+            else:
+                pred = model.predict(input_df)[0]
+            result = "Subscribed" if pred == 1 else "Not Subscribed"
+            rows.append({"Model": model_name, "Prediction": result})
+        pred_df = pd.DataFrame(rows)
+        st.success("Predictions from all models")
+        st.dataframe(pred_df, use_container_width=True, hide_index=True)
