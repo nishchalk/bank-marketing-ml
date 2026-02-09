@@ -81,7 +81,7 @@ if page == "Training Notebook":
     with open("Bank_Marketing_Assignment_2.html", "r", encoding="utf-8") as f:
         html_content = f.read()
     # Display the HTML content
-    st.components.v1.html(html_content, width=800, height=600, scrolling=True)
+    st.components.v1.html(html_content, width="stretch")
     # with open("Bank_Marketing_Assignment_2.ipynb", "r", encoding="utf-8") as f:
     #     st.code(f.read(), language="python")
 
