@@ -7,8 +7,11 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 from sklearn.metrics import confusion_matrix, classification_report
 
-st.set_page_config(page_title="ML Assignment 2", layout="wide")
-st.title("ML Assignment 2 – Streamlit Deployment")
+st.set_page_config(page_title="2025AB05229 - Bank Prediction", layout="wide")
+st.title("2025AB05229 - Bank Prediction")
+st.subheader("Name: Nishchal Kutarekar")
+st.subheader("BITS ID: 2025AB05229")
+st.write("G565: ML Assignment - 2")
 
 MODEL_DIR = "model"
 METRICS_PATH = f"{MODEL_DIR}/metrics.json"
@@ -99,7 +102,7 @@ if page == "Model Performance":
                     "F1": round(m["F1"], 4),
                     "MCC": round(m["MCC"], 4),
                 })
-            st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
+            st.dataframe(pd.DataFrame(rows), width='stretch', hide_index=True)
         else:
             st.info("No metrics data in metrics.json.")
     except FileNotFoundError:
@@ -113,7 +116,7 @@ elif page == "Training Notebook":
     with open("Bank_Marketing_Assignment_2.html", "r", encoding="utf-8") as f:
         html_content = f.read()
     # Display the HTML content
-    st.components.v1.html(html_content, width=1200, height=1000, scrolling=True)
+    st.components.v1.html(html_content, width='stretch', height=1000, scrolling=True)
     # with open("Bank_Marketing_Assignment_2.ipynb", "r", encoding="utf-8") as f:
     #     st.code(f.read(), language="python")
 
@@ -236,4 +239,4 @@ elif page == "Single Prediction":
             rows.append({"Model": model_name, "Prediction": result})
         pred_df = pd.DataFrame(rows)
         st.success("Predictions from all models")
-        st.dataframe(pred_df, use_container_width=True, hide_index=True)
+        st.dataframe(pred_df, width='stretch', hide_index=True)
