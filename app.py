@@ -2,11 +2,16 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import joblib
+import json
+import seaborn as sns
+import matplotlib.pyplot as plt
+from sklearn.metrics import confusion_matrix, classification_report
 
 st.set_page_config(page_title="ML Assignment 2", layout="wide")
 st.title("ML Assignment 2 – Streamlit Deployment")
 
 MODEL_DIR = "model"
+METRICS_PATH = f"{MODEL_DIR}/metrics.json"
 
 # Categorical options (encoding order = sorted unique in training data)
 # Used for both Single Prediction and CSV Upload preprocessing
@@ -72,10 +77,37 @@ scaler = joblib.load(f"{MODEL_DIR}/scaler.pkl")
 
 page = st.sidebar.radio(
     "Navigation",
-    ["Training Notebook", "CSV Upload Prediction", "Single Prediction"]
+    ["Model Performance", "Training Notebook", "CSV Upload Prediction", "Single Prediction"]
 )
 
-if page == "Training Notebook":
+if page == "Model Performance":
+    st.subheader("Evaluation Metrics & Confusion Matrix")
+    try:
+        with open(METRICS_PATH, "r", encoding="utf-8") as f:
+            metrics_data = json.load(f)
+        metrics_list = metrics_data.get("models", [])
+        if metrics_list:
+            cols = ["Model", "Accuracy", "AUC", "Precision", "Recall", "F1", "MCC"]
+            rows = []
+            for m in metrics_list:
+                rows.append({
+                    "Model": m["name"],
+                    "Accuracy": round(m["Accuracy"], 4),
+                    "AUC": round(m["AUC"], 4),
+                    "Precision": round(m["Precision"], 4),
+                    "Recall": round(m["Recall"], 4),
+                    "F1": round(m["F1"], 4),
+                    "MCC": round(m["MCC"], 4),
+                })
+            st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
+        else:
+            st.info("No metrics data in metrics.json.")
+    except FileNotFoundError:
+        st.warning("metrics.json not found. Run the training notebook to generate it.")
+    st.markdown("---")
+    st.caption("Confusion matrix and classification report are shown on **CSV Upload Prediction** when you upload a CSV that includes the target column `y` and run prediction.")
+
+elif page == "Training Notebook":
     st.subheader("Model Training Notebook")
     # Read the HTML file content
     with open("Bank_Marketing_Assignment_2.html", "r", encoding="utf-8") as f:
@@ -108,6 +140,7 @@ elif page == "CSV Upload Prediction":
     if uploaded_file:
         df = pd.read_csv(uploaded_file)
         st.dataframe(df.head())
+        has_target = "y" in df.columns
 
         if st.button("Run Prediction"):
             model = models[model_name]
@@ -124,6 +157,34 @@ elif page == "CSV Upload Prediction":
                 df["Prediction"] = preds
                 st.success("Prediction completed")
                 st.dataframe(df)
+
+                # Confusion matrix and classification report (when target 'y' is present)
+                st.markdown("---")
+                st.subheader("Confusion Matrix & Classification Report")
+                if has_target:
+                    y_raw = df["y"]
+                    # Support both yes/no and 0/1
+                    if y_raw.dtype in (np.int64, np.float64, int, float):
+                        y_true = np.asarray(y_raw).astype(int)
+                    else:
+                        y_true = y_raw.astype(str).str.strip().str.lower().map({"yes": 1, "no": 0}).values
+                        if np.isnan(y_true).any():
+                            y_true = y_raw.astype(int).values
+                    st.write("**Confusion Matrix**")
+                    cm = confusion_matrix(y_true, preds)
+                    fig, ax = plt.subplots(figsize=(5, 4))
+                    sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", ax=ax,
+                                xticklabels=["Not Subscribed", "Subscribed"],
+                                yticklabels=["Not Subscribed", "Subscribed"])
+                    ax.set_xlabel("Predicted")
+                    ax.set_ylabel("Actual")
+                    ax.set_title(f"{model_name}")
+                    st.pyplot(fig)
+                    plt.close(fig)
+                    st.write("**Classification Report**")
+                    st.text(classification_report(y_true, preds, target_names=["Not Subscribed", "Subscribed"]))
+                else:
+                    st.info("Upload a CSV that includes the target column **y** (yes/no or 0/1) to see the confusion matrix and classification report here.")
 
 elif page == "Single Prediction":
     st.subheader("Single Entry Prediction")
